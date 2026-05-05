@@ -1,0 +1,2114 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>방과후 급식관리</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" crossorigin />
+  <script src="https://cdn.jsdelivr.net/npm/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #0c0e12;
+      --bg-elevated: #141821;
+      --surface: #1a2030;
+      --surface-2: #222a3d;
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #e8ecf4;
+      --text-muted: #8b95a8;
+      --accent: #4fd1c5;
+      --accent-dim: rgba(79, 209, 197, 0.15);
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --nav-h: 62px;
+      --radius: 16px;
+      --qr-panel-border: #3f3f46;
+      --qr-panel-shadow: 0 10px 32px rgba(0, 0, 0, 0.38);
+    }
+
+    * { box-sizing: border-box; }
+
+    html {
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100vh;
+      max-height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Pretendard', 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      height: 100vh;
+      height: 100dvh;
+      max-height: 100vh;
+      max-height: 100dvh;
+      overflow: hidden;
+      overscroll-behavior: none;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ----------------- 상단 네비게이션 ----------------- */
+    .topnav {
+      flex-shrink: 0;
+      height: var(--nav-h);
+      min-height: var(--nav-h);
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      z-index: 50;
+      gap: 14px;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      object-fit: contain;
+      flex-shrink: 0;
+    }
+    .brand-text-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .brand-school {
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      line-height: 1;
+    }
+    .brand-text-sep {
+      width: 1px;
+      height: 16px;
+      background: rgba(255, 255, 255, 0.25);
+      flex-shrink: 0;
+    }
+    .brand-system {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--accent);        /* #4fd1c5 청록 — 시스템 테마색 */
+      letter-spacing: -0.01em;
+      line-height: 1;
+    }
+    .brand-divider {
+      width: 1px;
+      height: 28px;
+      background: var(--border);
+      flex-shrink: 0;
+      margin: 0 4px;
+    }
+    .nav-tabs {
+      display: flex;
+      gap: 4px;
+      margin-left: 12px;
+    }
+    .nav-btn {
+      background: transparent;
+      border: 0;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 600;
+      padding: 8px 12px;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: background 0.15s, color 0.15s;
+      font-family: inherit;
+    }
+    .nav-btn:hover { color: var(--text); background: var(--surface); }
+    .nav-btn.active { color: var(--accent); background: var(--accent-dim); }
+
+    .clock {
+      margin-left: auto;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    /* ----------------- 뷰 컨테이너 ----------------- */
+    main {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow: hidden;
+      padding: 4px 8px 6px;
+      display: flex;
+      flex-direction: column;
+    }
+    .view {
+      display: none;
+      flex: 1;
+      min-height: 0;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .view.active { display: flex; }
+    .view[data-view="log"] {
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* 학생정보 탭: 상단 대시보드 + 중단 검색 + 하단 리스트(스크롤) */
+    .view[data-view="students"] {
+      overflow: hidden;
+      gap: 6px;
+      padding: 6px 8px 4px;
+    }
+    .view[data-view="students"] .stu-list-wrap {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .view[data-view="students"] .toolbar {
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    .view[data-view="students"] .toolbar input {
+      padding: 8px 12px;
+      font-size: 13px;
+    }
+    .view[data-view="students"] .toolbar .btn {
+      padding: 8px 14px;
+      font-size: 13px;
+    }
+    .view[data-view="students"] #stu-list.grid {
+      grid-template-columns: repeat(auto-fill, minmax(168px, 1fr));
+      gap: 10px;
+    }
+    .view[data-view="students"] .stu-list-wrap .empty-state {
+      padding: 28px 12px;
+    }
+
+    /* ----------------- QR 스캔 화면 ----------------- */
+    .view[data-view="qr"] .qr-grid {
+      flex: 1;
+      min-height: 0;
+      display: grid;
+      grid-template-columns: minmax(0, 1.02fr) minmax(0, 0.98fr);
+      gap: 10px;
+      align-items: stretch;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+      height: 100%;
+    }
+    @media (max-width: 900px) {
+      .view[data-view="qr"] .qr-grid {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1.02fr) minmax(0, 0.98fr);
+        gap: 12px;
+      }
+    }
+
+    .panel {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .qr-grid > .panel {
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      border: 2.5px solid var(--qr-panel-border);
+      box-shadow: var(--qr-panel-shadow);
+    }
+    .view[data-view="qr"] .panel-head {
+      padding: 6px 10px;
+      font-size: 12px;
+    }
+    .view[data-view="qr"] .panel-head .pill {
+      font-size: 11px;
+      padding: 2px 8px;
+    }
+    .panel-head {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 15px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .panel-head .pill {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-muted);
+      background: var(--surface);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-weight: 500;
+    }
+    .qr-grid .panel-body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: 6px 8px 8px;
+    }
+    .view[data-view="qr"] .panel-right .panel-body {
+      position: relative;
+      padding: 6px 8px 50px;
+    }
+    .view[data-view="qr"] .panel-right #btn-student-reset {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      z-index: 2;
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 8px;
+      border: 1px solid #34495e;
+      background: transparent;
+      color: var(--text);
+    }
+    .view[data-view="qr"] .panel-right #btn-student-reset:hover {
+      background: var(--surface-2);
+      border-color: #3d5666;
+    }
+
+    /* 카메라 영역 (QR 스캐너 메인) */
+    #qr-reader {
+      width: 100%;
+      flex: 1 1 auto;
+      min-height: 0;
+      background: #000;
+      border-radius: 12px;
+      overflow: hidden;
+      position: relative;
+    }
+    #qr-reader video { width: 100% !important; height: 100% !important; object-fit: cover; }
+    #qr-reader__dashboard { display: none !important; }
+    #qr-reader__scan_region { background: transparent !important; }
+    #qr-reader__scan_region img { display: none !important; }
+
+    .qr-controls {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: nowrap;
+      flex-shrink: 0;
+      align-items: center;
+    }
+    .view[data-view="qr"] .qr-controls .btn {
+      padding: 8px 12px;
+      font-size: 13px;
+      border-radius: 8px;
+    }
+    .qr-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--surface);
+      color: var(--text-muted);
+    }
+    .qr-status.ok { background: rgba(52, 211, 153, 0.15); color: var(--success); }
+    .qr-status.err { background: rgba(248, 113, 113, 0.15); color: var(--danger); }
+
+    /* 학생 정보 패널 */
+    #student-panel {
+      flex: 1;
+      min-height: 0;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      text-align: center;
+      gap: 5px;
+      padding: 4px 8px 4px;
+      overflow: hidden;
+    }
+    #student-panel.empty {
+      color: var(--text-muted);
+      font-size: clamp(11px, 1.4vw, 13px);
+      line-height: 1.35;
+      justify-content: center;
+      padding: 8px 14px 10px;
+    }
+    /* 고정 정사각형 프레임: 원본 비율과 무관하게 동일 크기·cover로 표시 */
+    #student-panel .photo-frame {
+      flex: 0 1 auto;
+      width: min(100%, min(46dvh, calc(100dvh - 200px), 380px));
+      max-width: 100%;
+      aspect-ratio: 1;
+      height: auto;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--surface);
+      border: 2.5px solid rgba(255, 255, 255, 0.45);
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+      flex-shrink: 1;
+    }
+    #student-panel .photo {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center top;
+      border-radius: 0;
+      border: 0;
+      box-shadow: none;
+      background: var(--surface);
+    }
+    #student-panel .name {
+      font-size: clamp(13px, 1.9vw, 18px);
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      flex-shrink: 0;
+    }
+    #student-panel .sid {
+      font-size: clamp(10px, 1.3vw, 14px);
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+      flex-shrink: 0;
+      line-height: 1.1;
+    }
+    #student-panel .greet {
+      margin-top: 2px;
+      padding: 6px 14px;
+      background: rgba(52, 211, 153, 0.18);
+      color: var(--success);
+      border-radius: 999px;
+      font-size: clamp(20px, 2.8vw, 28px);
+      font-weight: 900;
+      flex-shrink: 0;
+      line-height: 1.2;
+    }
+    #student-panel .scan-time {
+      color: var(--text-muted);
+      font-size: clamp(18px, 2.4vw, 24px);
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+      margin-top: 2px;
+      line-height: 1.15;
+    }
+
+    /* ----------------- 버튼 ----------------- */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 18px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.15s, transform 0.05s;
+    }
+    .btn:hover { background: var(--surface-2); }
+    .btn:active { transform: scale(0.98); }
+    .btn-primary {
+      background: var(--accent);
+      color: #06231f;
+      border-color: var(--accent);
+    }
+    .btn-primary:hover { background: #6fdbcf; }
+    .btn-ghost { background: transparent; }
+
+    /* ----------------- 식사현황 ----------------- */
+    .summary-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 22px 26px;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .summary-card .big {
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--accent);
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+    .summary-card .label {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 4px;
+    }
+    .summary-card .date {
+      font-size: 18px;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 14px;
+    }
+    .student-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      text-align: center;
+    }
+    .student-card img {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      background: var(--surface);
+    }
+    .student-card .nm {
+      font-size: 16px;
+      font-weight: 700;
+    }
+    .student-card .meta {
+      color: var(--text-muted);
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+    }
+    .student-card .time {
+      margin-top: 4px;
+      padding: 3px 10px;
+      background: var(--accent-dim);
+      color: var(--accent);
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      font-variant-numeric: tabular-nums;
+    }
+    .empty-state {
+      padding: 60px 0;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* 학생정보 검색 */
+    .toolbar {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+    .toolbar input {
+      flex: 1;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      color: var(--text);
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+    .toolbar input:focus { outline: none; border-color: var(--accent); }
+
+    /* 학생정보 — 방과후 신청 집계 대시보드 (슬림: 탭에서 목록 영역 확보) */
+    .stu-dashboard {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;        /* 좌우 높이 동일하게 */
+      gap: 10px;
+      flex-shrink: 0;
+      min-height: 0;
+    }
+
+    /* 좌측: 학년·반 그리드 */
+    .stu-dashboard-main {
+      flex: 1 1 0;
+      min-width: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    .stu-grade-block {
+      flex: 1 1 0;                 /* 3학년 각각 동일 비율로 높이 분배 */
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+    .stu-grade-block + .stu-grade-block {
+      border-top: 1px solid var(--border);
+      margin-top: 6px;
+      padding-top: 6px;
+    }
+    .stu-grade-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -0.01em;
+      margin-bottom: 5px;
+      line-height: 1.1;
+    }
+    .stu-class-grid {
+      display: grid;
+      grid-template-columns: repeat(10, minmax(0, 1fr));
+      gap: 4px;
+    }
+    @media (max-width: 720px) {
+      .stu-class-grid { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+      .stu-dashboard { flex-wrap: wrap; }
+    }
+    .stu-class-cell {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 5px 2px 6px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1px;
+      cursor: pointer;
+      transition: background 0.13s, border-color 0.13s, transform 0.06s, box-shadow 0.13s;
+    }
+    .stu-class-cell:hover {
+      background: var(--surface-2);
+      border-color: rgba(79, 209, 197, 0.45);
+      box-shadow: 0 0 0 2px rgba(79, 209, 197, 0.13);
+    }
+    .stu-class-cell:active { transform: scale(0.96); }
+    .stu-class-cell.is-active {
+      background: var(--accent);
+      border-color: var(--accent);
+      box-shadow: 0 2px 10px rgba(79, 209, 197, 0.35);
+    }
+    .stu-class-cell.is-active .stu-class-num,
+    .stu-class-cell.is-active .stu-class-count { color: #063330; }
+    .stu-class-cell.is-zero { opacity: 0.38; }
+    .stu-class-cell .stu-class-num {
+      font-size: 9px;
+      font-weight: 600;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .stu-class-cell .stu-class-count {
+      font-size: 15px;
+      font-weight: 800;
+      font-variant-numeric: tabular-nums;
+      color: var(--text);
+      line-height: 1.1;
+    }
+    .stu-class-cell.is-zero .stu-class-count { color: var(--text-muted); }
+
+    /* 우측 사이드: 좌측과 동일 높이, 위 2/3 + 아래 1/3 */
+    .stu-dashboard-side {
+      flex: 0 0 200px;
+      width: 200px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    /* 우측 상단: 기간 + 신청인원 — 2학년 비율(전체의 약 2/3) */
+    .stu-dashboard-total {
+      flex: 2 1 0;
+      min-height: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: stretch;
+      gap: 8px;
+      text-align: right;
+    }
+
+    /* 1줄: 기간 */
+    .stu-total-period-line {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      line-height: 1.45;
+      letter-spacing: -0.01em;
+      margin: 0;
+      word-break: keep-all;
+      text-align: right;
+    }
+    .stu-total-period-line.is-empty { opacity: 0.65; }
+
+    /* 2줄: 방과후 식사 신청인원 */
+    .stu-total-headline {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin: 0;
+      text-align: right;
+    }
+
+    /* 3줄: 288명 — 오른쪽 정렬 */
+    .stu-total-value {
+      display: flex;
+      align-items: baseline;
+      justify-content: flex-end;
+      gap: 2px;
+      margin: 0;
+    }
+    .stu-total-n {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+    .stu-total-unit {
+      font-size: 13px;
+      font-weight: 800;
+      color: #ffffff;
+      line-height: 1;
+    }
+
+    /* 우측 하단: 전체 학생 보기 버튼 — 1학년 비율(전체의 약 1/3) */
+    .stu-clear-filter-wrap {
+      flex: 1 1 0;
+      min-height: 0;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 12px;
+    }
+    .stu-clear-filter-btn {
+      width: 100%;
+      height: 100%;
+      min-height: 40px;
+      padding: 8px 12px;
+      border-radius: 12px;
+      border: 2px solid rgba(79, 209, 197, 0.55);
+      background: rgba(79, 209, 197, 0.10);
+      color: var(--accent);
+      font-size: 14px;
+      font-weight: 800;
+      font-family: inherit;
+      letter-spacing: -0.01em;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+    }
+    .stu-clear-filter-btn::before {
+      content: '☰';
+      font-size: 14px;
+    }
+    .stu-clear-filter-btn:hover:not(:disabled) {
+      background: rgba(79, 209, 197, 0.22);
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(79, 209, 197, 0.15);
+    }
+    .stu-clear-filter-btn:active:not(:disabled) { transform: scale(0.97); }
+    .stu-clear-filter-btn:disabled {
+      opacity: 0.32;
+      cursor: default;
+      border-color: var(--border);
+      background: transparent;
+      color: var(--text-muted);
+    }
+    .stu-applicant-pill {
+      margin-top: 6px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      background: rgba(79, 209, 197, 0.18);
+      color: var(--accent);
+    }
+
+    /* ----------------- display 모드 (노트북 얼굴 확인용) ----------------- */
+    .display-mode-view {
+      flex: 1;
+      display: flex !important;
+      align-items: center;
+      justify-content: center;
+      background: var(--bg);
+      padding: 40px;
+    }
+    .display-waiting {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      opacity: 0.4;
+    }
+    .display-waiting-icon { font-size: 72px; }
+    .display-waiting-text {
+      font-size: 22px;
+      font-weight: 600;
+      color: var(--text-muted);
+      letter-spacing: -0.02em;
+    }
+    .display-student {
+      display: flex;
+      align-items: center;
+      gap: 48px;
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px 56px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+      animation: display-fadein 0.35s ease;
+    }
+    @keyframes display-fadein {
+      from { opacity: 0; transform: scale(0.97); }
+      to   { opacity: 1; transform: scale(1); }
+    }
+    .display-photo-wrap {
+      flex-shrink: 0;
+    }
+    .display-photo {
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      object-fit: cover;
+      object-position: center top;
+      border: 4px solid var(--accent);
+      box-shadow: 0 0 0 8px rgba(79, 209, 197, 0.15);
+      background: var(--surface);
+    }
+    .display-info {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .display-name {
+      font-size: 48px;
+      font-weight: 900;
+      color: #ffffff;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+    .display-sid {
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+    .display-time {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ----------------- 모달 ----------------- */
+    .modal {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.65);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+      backdrop-filter: blur(6px);
+    }
+    .modal.is-open { display: flex; }
+    .modal-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 32px 28px;
+      max-width: 460px;
+      width: 100%;
+      text-align: center;
+    }
+    .modal-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      font-weight: 900;
+    }
+    .modal-icon.warn { background: rgba(248, 113, 113, 0.18); color: var(--danger); }
+    .modal-icon.info { background: rgba(251, 191, 36, 0.18); color: var(--warning); }
+    .modal-card h2 {
+      margin: 0 0 8px;
+      font-size: 22px;
+      font-weight: 800;
+    }
+    .modal-card p {
+      margin: 0 0 20px;
+      color: var(--text-muted);
+      font-size: 15px;
+      line-height: 1.5;
+    }
+    .modal-card .btn { width: 100%; padding: 14px; font-size: 15px; }
+
+    /* 학생 상세 이력 모달 (#34495e 테두리 3px) */
+    #student-detail-modal .student-detail-card {
+      background: var(--bg-elevated);
+      border: 3px solid #34495e;
+      border-radius: 20px;
+      max-width: min(520px, 100%);
+      width: 100%;
+      max-height: min(92dvh, 92vh);
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      text-align: left;
+      box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+    }
+    #student-detail-modal .student-detail-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      padding: 8px 8px 0;
+      flex-shrink: 0;
+    }
+    #student-detail-modal .student-detail-close {
+      background: var(--surface);
+      border: 2px solid #34495e;
+      color: var(--text);
+      width: 48px;
+      height: 48px;
+      border-radius: 12px;
+      font-size: 26px;
+      font-weight: 700;
+      line-height: 1;
+      cursor: pointer;
+      font-family: inherit;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #student-detail-modal .student-detail-close:hover {
+      background: var(--surface-2);
+    }
+    #student-detail-modal .student-detail-body {
+      display: flex;
+      flex-direction: column;
+      padding: 0 16px 16px;
+      gap: 12px;
+    }
+    /* 상단: 사진(원) + 이름·총 식사 횟수 */
+    #student-detail-modal .student-detail-profile-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      flex-shrink: 0;
+      min-width: 0;
+    }
+    #student-detail-modal .student-detail-photo-wrap {
+      width: 120px;
+      height: 120px;
+      flex-shrink: 0;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid rgba(255, 255, 255, 0.28);
+      background: var(--surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+      box-shadow:
+        0 0 0 1px rgba(52, 73, 94, 0.35),
+        inset 0 1px 0 rgba(255, 255, 255, 0.45),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.12),
+        0 4px 14px rgba(0, 0, 0, 0.22);
+    }
+    #student-detail-modal .student-detail-photo {
+      display: block;
+      width: 120px;
+      height: 120px;
+      object-fit: cover;
+      object-position: center;
+    }
+    #student-detail-modal .student-detail-profile-meta {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 8px;
+      text-align: left;
+    }
+    #student-detail-modal .student-detail-title {
+      font-size: clamp(17px, 2.3vw, 19px);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.3;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #student-detail-modal .student-detail-meals-summary {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: baseline;
+      gap: 0 4px;
+      line-height: 1.3;
+    }
+    /* "총 식사 횟수:" / "식사 기록" 공통 (크기·색·굵기 동일) */
+    #student-detail-modal .student-detail-section-label {
+      font-size: clamp(16px, 2.8vw, 20px);
+      font-weight: 700;
+      color: var(--text-muted);
+      text-align: left;
+      line-height: 1.3;
+    }
+    #student-detail-modal .student-detail-count {
+      font-size: clamp(17px, 2.5vw, 20px);
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1.3;
+      font-variant-numeric: tabular-nums;
+      text-align: left;
+      flex-shrink: 0;
+    }
+    #student-detail-modal .student-detail-list-head {
+      margin: 4px 0 0;
+    }
+    #student-detail-modal .student-detail-list {
+      border: 3px solid #34495e;
+      border-radius: 14px;
+      background: var(--surface);
+      text-align: left;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+    #student-detail-modal .student-detail-list-item {
+      padding: 12px 16px;
+      font-size: clamp(15px, 2.2vw, 17px);
+      font-weight: 600;
+      line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+      border-bottom: 1px solid var(--border);
+      color: var(--text);
+    }
+    #student-detail-modal .student-detail-list-item:last-child {
+      border-bottom: 0;
+    }
+    #student-detail-modal .student-detail-loading,
+    #student-detail-modal .student-detail-error {
+      font-size: clamp(17px, 3vw, 22px);
+      padding: 24px 16px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    #student-detail-modal .student-detail-error {
+      color: var(--danger);
+    }
+    .student-card.student-card--clickable {
+      cursor: pointer;
+      transition: transform 0.12s, border-color 0.12s, background 0.12s;
+    }
+    .student-card.student-card--clickable:hover {
+      border-color: rgba(79, 209, 197, 0.35);
+      background: var(--surface);
+    }
+    .student-card.student-card--clickable:active {
+      transform: scale(0.98);
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ============================================== -->
+  <!--   ★ 배포 후 이 한 줄만 본인 GAS URL로 교체!     -->
+  <!-- ============================================== -->
+  <script>
+    var GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwXUGVuMX0HCbpjbk9RzNfKqUCXSTFRlz4Ly9h9Jf7a7nLT7ezISGjVnkXMVnVvoAi9rA/exec';
+  </script>
+
+  <header class="topnav">
+    <div class="brand">
+      <img class="brand-logo"
+        src="https://raw.githubusercontent.com/yenxi0319/meal-kiosk/main/logo.png"
+        alt="한림항공우주고등학교 교표"
+        onerror="this.style.display='none'" />
+      <div class="brand-text-wrap">
+        <span class="brand-school">한림항공우주고등학교</span>
+        <div class="brand-text-sep"></div>
+        <span class="brand-system">방과후 급식관리 시스템</span>
+      </div>
+    </div>
+    <div class="brand-divider"></div>
+    <nav class="nav-tabs" aria-label="주 메뉴">
+      <button type="button" class="nav-btn active" data-view="qr">QR 스캔</button>
+      <button type="button" class="nav-btn" data-view="log">식사현황</button>
+      <button type="button" class="nav-btn" data-view="students">학생정보</button>
+    </nav>
+    <div class="clock" id="clock"></div>
+  </header>
+
+  <main>
+
+    <!-- ===== QR 스캔 ===== -->
+    <section class="view active" data-view="qr">
+      <div class="qr-grid">
+        <div class="panel">
+          <div class="panel-head">
+            실시간 카메라
+            <span class="pill" id="qr-status">대기 중</span>
+          </div>
+          <div class="panel-body">
+            <div id="qr-reader"></div>
+            <div class="qr-controls">
+              <button class="btn btn-primary" id="btn-qr-start">카메라 시작</button>
+              <button class="btn btn-ghost" id="btn-qr-stop">카메라 중지</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="panel panel-right">
+          <div class="panel-head">학생 정보</div>
+          <div class="panel-body">
+            <div id="student-panel" class="empty">QR 코드를 카메라에 비추면 정보가 표시됩니다.</div>
+            <button type="button" class="btn btn-ghost" id="btn-student-reset" aria-label="학생 정보 초기화">정보 초기화</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== 식사현황 ===== -->
+    <section class="view" data-view="log">
+      <div class="summary-card">
+        <div>
+          <div class="big" id="log-count">0</div>
+        </div>
+        <div>
+          <div class="label">오늘 식사한 학생</div>
+          <div class="date" id="log-date">-</div>
+        </div>
+        <div style="margin-left:auto">
+          <button class="btn" id="btn-log-refresh">새로고침</button>
+        </div>
+      </div>
+      <div id="log-list" class="grid"></div>
+    </section>
+
+    <!-- ===== 학생정보 ===== -->
+    <section class="view" data-view="students">
+      <div id="stu-dash" class="stu-dashboard" aria-label="방과후 식사 신청 집계"></div>
+      <div class="toolbar">
+        <input type="search" id="stu-search" placeholder="이름 또는 학번으로 검색 (실시간)" autocomplete="off" />
+        <button class="btn" id="btn-stu-refresh">새로고침</button>
+      </div>
+      <div class="stu-list-wrap">
+        <div id="stu-list" class="grid"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- 에러 모달 (등록되지 않은 학생 / 중복) -->
+  <div class="modal" id="error-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-icon warn" id="modal-icon">!</div>
+      <h2 id="modal-title">알림</h2>
+      <p id="modal-message"></p>
+      <button class="btn btn-primary" id="btn-modal-ok">확인</button>
+    </div>
+  </div>
+
+  <!-- 카메라 권한 안내 모달 -->
+  <div class="modal" id="cam-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modal-card">
+      <div class="modal-icon info">i</div>
+      <h2>카메라 권한이 필요합니다</h2>
+      <p>주소창의 카메라 차단 아이콘을 눌러 허용으로 바꾼 뒤 다시 시도해 주세요.</p>
+      <button class="btn btn-primary" id="btn-cam-ok">확인</button>
+    </div>
+  </div>
+
+  <!-- 학생 상세 (식사 이력) -->
+  <div class="modal" id="student-detail-modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="student-detail-card" id="student-detail-card" role="document">
+      <div class="student-detail-head">
+        <button type="button" class="student-detail-close" id="btn-student-detail-close" aria-label="닫기">×</button>
+      </div>
+      <div class="student-detail-body">
+        <div class="student-detail-profile-row">
+          <div class="student-detail-photo-wrap">
+            <img class="student-detail-photo" id="student-detail-photo" src="" alt="" />
+          </div>
+          <div class="student-detail-profile-meta">
+            <div class="student-detail-title" id="student-detail-title"></div>
+            <div class="student-detail-meals-summary">
+              <span class="student-detail-section-label">총 식사 횟수: </span><span class="student-detail-count" id="student-detail-count">-</span>
+            </div>
+          </div>
+        </div>
+        <div class="student-detail-section-label student-detail-list-head">식사 기록</div>
+        <div class="student-detail-list" id="student-detail-list"></div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ---------- 상태 ---------- */
+  var html5QrCode = null;
+  var qrRunning = false;
+  var scanCooldown = false;
+  var awaitingAck = false;       // 에러 모달이 떠 있는 동안은 스캔 무시
+  var currentView = 'qr';
+  var studentsCache = null;
+  /** 학번 → 학생 객체 (프리패치 명단, QR 시 서버 조회 없이 사용) */
+  var studentsById = Object.create(null);
+  /** 오늘 식사한 학번 (프리패치 todayLog + 낙관적 추가) */
+  var scannedToday = Object.create(null);
+  var studentsReady = false;
+  /** students API의 mealApplicantStats(없으면 클라이언트에서 재계산) */
+  var mealApplicantStatsCache = null;
+  /** StudentList_1 방과후시작·방과후종료 기반 기간(API afterSchoolPeriod, 폴백: 명단 첫 유효 행) */
+  var afterSchoolPeriodCache = { start: '', end: '' };
+  var scanBeepAudioCtx = null;
+  /** 활성화된 반 필터: { grade: number, classNo: number } | null */
+  var activeClassFilter = null;
+
+  function todayKeySeoul() {
+    try {
+      return new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(new Date());
+    } catch (e) {
+      var d = new Date();
+      var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+  }
+
+  function formatNowSeoul() {
+    try {
+      return new Intl.DateTimeFormat('sv-SE', {
+        timeZone: 'Asia/Seoul',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(new Date()).replace(',', '');
+    } catch (e) {
+      var d = new Date();
+      var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' '
+          + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    }
+  }
+
+  function rebuildStudentsById(list) {
+    studentsById = Object.create(null);
+    (list || []).forEach(function (s) {
+      var id = String(s.studentId || '').trim();
+      if (id) studentsById[id] = s;
+    });
+  }
+
+  function applyTodayLogToScanned(res) {
+    scannedToday = Object.create(null);
+    if (res && res.ok && res.entries && res.entries.length) {
+      res.entries.forEach(function (e) {
+        var id = String(e.studentId || '').trim();
+        if (id) scannedToday[id] = true;
+      });
+    }
+  }
+
+  function isEligiblePeriod(student, todayKey) {
+    var s = String((student && student.periodStart) || '').trim();
+    var e = String((student && student.periodEnd) || '').trim();
+    if (!s || !e) return false;
+    return todayKey >= s && todayKey <= e;
+  }
+
+  /** 방과후 시작·종료가 모두 있으면 식사(방과후) 신청자 (GAS computeMealApplicantStats_ 와 동일 규칙) */
+  function isMealApplicantStudent_(s) {
+    if (!s) return false;
+    return !!String(s.periodStart || '').trim() && !!String(s.periodEnd || '').trim();
+  }
+
+  function isAdmin(id) {
+    var studentId = String(id || '').trim();
+    return studentId === '999999999' || studentId === '888888888';
+  }
+
+  function computeMealApplicantStatsClient_(list) {
+    var grid = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+    var total = 0;
+    (list || []).forEach(function (st) {
+      if (!isMealApplicantStudent_(st)) return;
+      
+      // ★ 관리자 학번 예외 처리: 통계 집계에서 완벽히 제외
+      var sid = String(st.studentId || '').trim();
+      if (sid === '999999999' || sid === '888888888') return; 
+
+      total++;
+      var digits = sid.replace(/\D/g, '');
+      if (digits.length !== 9) return;
+      var g = parseInt(digits.charAt(4), 10);
+      var cl = parseInt(digits.substring(5, 7), 10);
+      if (g >= 1 && g <= 3 && cl >= 1 && cl <= 10) grid[g - 1][cl - 1]++;
+    });
+    return { totalApplicants: total, grid: grid };
+  }
+
+  function derivePeriodFromStudents_(list) {
+    for (var i = 0; i < (list || []).length; i++) {
+      var s = list[i];
+      if (!s) continue;
+      var ps = String(s.periodStart || '').trim();
+      var pe = String(s.periodEnd || '').trim();
+      if (ps && pe) return { start: ps, end: pe };
+    }
+    return { start: '', end: '' };
+  }
+
+  function syncAfterSchoolPeriodFromApi_(res, list) {
+    if (res && res.afterSchoolPeriod) {
+      var a = String(res.afterSchoolPeriod.start || '').trim();
+      var b = String(res.afterSchoolPeriod.end || '').trim();
+      if (a && b) {
+        afterSchoolPeriodCache = { start: a, end: b };
+        return;
+      }
+    }
+    afterSchoolPeriodCache = derivePeriodFromStudents_(list || []);
+  }
+
+  function renderStudentDashboard_(stats) {
+    var mount = document.getElementById('stu-dash');
+    if (!mount) return;
+    var emptyGrid = function () {
+      return [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]];
+    };
+    stats = stats || { totalApplicants: 0, grid: emptyGrid() };
+    var total = stats.totalApplicants != null ? stats.totalApplicants : 0;
+    var grid = stats.grid || emptyGrid();
+    var grades = [1, 2, 3];
+    var html = '<div class="stu-dashboard-main">';
+    for (var gi = 0; gi < 3; gi++) {
+      var row = grid[gi] || [];
+      html += '<div class="stu-grade-block">';
+      html += '<div class="stu-grade-label">' + grades[gi] + '학년 (1~10반)</div>';
+      html += '<div class="stu-class-grid">';
+      for (var ci = 0; ci < 10; ci++) {
+        var n = row[ci] != null ? row[ci] : 0;
+        var zClass = n === 0 ? ' stu-class-cell is-zero' : ' stu-class-cell';
+        html += '<button type="button" class="' + zClass.trim() + '" data-grade="' + (gi + 1) + '" data-class="' + (ci + 1) + '" aria-label="' + (gi + 1) + '학년 ' + (ci + 1) + '반 필터">';
+        html += '<span class="stu-class-num">' + (ci + 1) + '반</span>';
+        html += '<span class="stu-class-count">' + n + '</span></button>';
+      }
+      html += '</div></div>';
+    }
+    html += '</div>';
+    var ps = String(afterSchoolPeriodCache.start || '').trim();
+    var pe = String(afterSchoolPeriodCache.end || '').trim();
+    var periodLine;
+    if (ps && pe) {
+      periodLine = '<div class="stu-total-period-line">' + escapeHtml(ps) + ' ~ ' + escapeHtml(pe) + '</div>';
+    } else {
+      periodLine = '<div class="stu-total-period-line is-empty">기간 정보 없음</div>';
+    }
+    html += '<div class="stu-dashboard-side">';
+    html += '<div class="stu-dashboard-total" role="status">';
+    html += periodLine;
+    html += '<div class="stu-total-headline">방과후 식사 신청인원</div>';
+    html += '<div class="stu-total-value"><span class="stu-total-n">' + total + '</span><span class="stu-total-unit">명</span></div>';
+    html += '</div>';
+    html += '<div class="stu-clear-filter-wrap">';
+    html += '<button type="button" id="btn-stu-clear-filter" class="stu-clear-filter-btn">전체 학생 보기</button>';
+    html += '</div>';
+    html += '</div>';
+    mount.innerHTML = html;
+    syncStudentFilterUI_();
+  }
+
+  function parseGradeClassFromStudentId_(studentId) {
+    var digits = String(studentId || '').replace(/\D/g, '');
+    if (digits.length !== 9) return null;
+    var grade = parseInt(digits.charAt(4), 10);
+    var classNo = parseInt(digits.substring(5, 7), 10);
+    if (!(grade >= 1 && grade <= 3 && classNo >= 1 && classNo <= 10)) return null;
+    return { grade: grade, classNo: classNo };
+  }
+
+  function clearClassFilter_(clearSearch) {
+    activeClassFilter = null;
+    if (clearSearch) {
+      var inputEl = document.getElementById('stu-search');
+      if (inputEl) inputEl.value = '';
+    }
+    syncStudentFilterUI_();
+  }
+
+  function syncStudentFilterUI_() {
+    var dash = document.getElementById('stu-dash');
+    if (!dash) return;
+    var cells = dash.querySelectorAll('.stu-class-cell');
+    for (var i = 0; i < cells.length; i++) {
+      var cell = cells[i];
+      var g = parseInt(cell.getAttribute('data-grade'), 10);
+      var c = parseInt(cell.getAttribute('data-class'), 10);
+      var active = !!activeClassFilter && activeClassFilter.grade === g && activeClassFilter.classNo === c;
+      cell.classList.toggle('is-active', active);
+    }
+    var clearBtn = document.getElementById('btn-stu-clear-filter');
+    if (clearBtn) clearBtn.disabled = !activeClassFilter;
+  }
+
+  function prefetchScanData() {
+    setStatus('명단 불러오는 중…', '');
+    studentsReady = false;
+    return Promise.all([api('students'), api('todayLog')])
+        .then(function (arr) {
+          var sres = arr[0];
+          var lres = arr[1];
+          if (sres && sres.ok) {
+            studentsCache = sres.students || [];
+            rebuildStudentsById(studentsCache);
+            studentsReady = true;
+            // 항상 클라이언트에서 재계산 → 관리자(999999999, 888888888) 확실히 제외
+            mealApplicantStatsCache = computeMealApplicantStatsClient_(studentsCache);
+            syncAfterSchoolPeriodFromApi_(sres, studentsCache);
+          } else {
+            studentsCache = studentsCache || [];
+            rebuildStudentsById(studentsCache);
+            studentsReady = false;
+            afterSchoolPeriodCache = derivePeriodFromStudents_(studentsCache);
+          }
+          if (lres && lres.ok) applyTodayLogToScanned(lres);
+          if (!qrRunning) setStatus('대기 중', '');
+        })
+        .catch(function (err) {
+          studentsReady = false;
+          setStatus('명단 로딩 실패: ' + (err && err.message ? err.message : err), 'err');
+        });
+  }
+
+  /** QR 인식 성공 시 — Web Audio: 매우 큰 비프(스퀘어 + 밴드 + 컴프) */
+  function playScanSuccessBeep() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!scanBeepAudioCtx) scanBeepAudioCtx = new AC();
+      var ctx = scanBeepAudioCtx;
+      if (ctx.state === 'suspended') ctx.resume();
+
+      var t0 = ctx.currentTime;
+      var dur = 0.22;
+      var master = ctx.createGain();
+      var comp = ctx.createDynamicsCompressor();
+      comp.threshold.setValueAtTime(-28, t0);
+      comp.knee.setValueAtTime(18, t0);
+      comp.ratio.setValueAtTime(14, t0);
+      comp.attack.setValueAtTime(0.002, t0);
+      comp.release.setValueAtTime(0.12, t0);
+      master.connect(comp);
+      comp.connect(ctx.destination);
+
+      master.gain.setValueAtTime(0.0001, t0);
+      master.gain.exponentialRampToValueAtTime(1, t0 + 0.008);
+      master.gain.setValueAtTime(1, t0 + dur * 0.55);
+      master.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+
+      function addOsc(freq, detune, type, vol) {
+        var o = ctx.createOscillator();
+        var g = ctx.createGain();
+        o.type = type;
+        o.frequency.setValueAtTime(freq, t0);
+        if (detune) o.detune.setValueAtTime(detune, t0);
+        g.gain.setValueAtTime(vol, t0);
+        o.connect(g);
+        g.connect(master);
+        o.start(t0);
+        o.stop(t0 + dur);
+      }
+      addOsc(523.25, 0, 'square', 0.55);
+      addOsc(1046.5, 0, 'square', 0.52);
+      addOsc(1568, 0, 'square', 0.38);
+      addOsc(2093, 0, 'sawtooth', 0.14);
+    } catch (e) { /* ignore */ }
+  }
+
+  /* ---------- 시계 ---------- */
+  function tick() {
+    var d = new Date();
+    var pad = function (n) { return n < 10 ? '0' + n : '' + n; };
+    var s = d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+          + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+    var el = document.getElementById('clock');
+    if (el) el.textContent = s;
+  }
+  setInterval(tick, 1000); tick();
+
+  /* ---------- API 호출 ---------- */
+  function api(action, params) {
+    var qs = ['action=' + encodeURIComponent(action)];
+    if (params) {
+      for (var k in params) {
+        if (params[k] !== undefined && params[k] !== null) {
+          qs.push(encodeURIComponent(k) + '=' + encodeURIComponent(params[k]));
+        }
+      }
+    }
+    var url = GAS_API_URL + '?' + qs.join('&');
+    return fetch(url, { method: 'GET', redirect: 'follow' })
+        .then(function (r) {
+          if (!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        });
+  }
+
+  /* ---------- 뷰 전환 ---------- */
+  var navBtns = document.querySelectorAll('.nav-btn');
+  var views = document.querySelectorAll('.view');
+  function showView(name) {
+    currentView = name;
+    navBtns.forEach(function (b) {
+      b.classList.toggle('active', b.getAttribute('data-view') === name);
+    });
+    views.forEach(function (v) {
+      v.classList.toggle('active', v.getAttribute('data-view') === name);
+    });
+    if (name !== 'qr') stopQr();
+    if (name === 'log') loadTodayLog();
+    if (name === 'students') loadStudents(true);
+  }
+  navBtns.forEach(function (b) {
+    b.addEventListener('click', function () { showView(b.getAttribute('data-view')); });
+  });
+
+  /* ---------- 상태 뱃지 ---------- */
+  function setStatus(msg, cls) {
+    var el = document.getElementById('qr-status');
+    el.textContent = msg;
+    el.className = 'pill qr-status ' + (cls || '');
+  }
+
+  /* ---------- 학생 패널 렌더링 ---------- */
+  function escapeHtml(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+  }
+  function fallbackPhoto() {
+    return 'data:image/svg+xml;utf8,' + encodeURIComponent(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">'
+      + '<rect width="200" height="200" fill="#222a3d"/>'
+      + '<circle cx="100" cy="80" r="32" fill="#4fd1c5" opacity="0.5"/>'
+      + '<rect x="50" y="120" width="100" height="60" rx="30" fill="#4fd1c5" opacity="0.5"/>'
+      + '</svg>');
+  }
+  function ensurePhotoLarge(url) {
+    if (!url) return '';
+    return String(url).replace(/([?&])sz=w\d+/i, '$1sz=w1000');
+  }
+  function renderStudentPanel(student, opts) {
+    opts = opts || {};
+    var panel = document.getElementById('student-panel');
+    panel.classList.remove('empty');
+    var rawPhoto = student && student.photoUrl ? student.photoUrl : '';
+    var photo = rawPhoto ? ensurePhotoLarge(rawPhoto) : fallbackPhoto();
+    var html = ''
+      + '<div class="photo-frame">'
+      + '<img class="photo" src="' + escapeHtml(photo) + '" '
+      + 'onerror="this.onerror=null;this.src=\'' + fallbackPhoto() + '\'" alt="" />'
+      + '</div>'
+      + '<div class="name">' + escapeHtml(student.name || '이름 없음') + '</div>'
+      + '<div class="sid">' + escapeHtml(student.studentId || '') + '</div>';
+    if (opts.greet) {
+      html += '<div class="greet">' + escapeHtml(opts.greet) + '</div>';
+    }
+    if (opts.time) {
+      html += '<div class="scan-time">' + escapeHtml(opts.time) + '</div>';
+    }
+    panel.innerHTML = html;
+  }
+  function clearStudentPanel(msg) {
+    var panel = document.getElementById('student-panel');
+    panel.classList.add('empty');
+    panel.innerHTML = '';
+    panel.textContent = msg || 'QR 코드를 카메라에 비추면 정보가 표시됩니다.';
+  }
+
+  /* ---------- 모달 ---------- */
+  function openModal(id, opts) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (opts) {
+      if (opts.title) document.getElementById('modal-title').textContent = opts.title;
+      if (opts.message) document.getElementById('modal-message').textContent = opts.message;
+      if (opts.icon) document.getElementById('modal-icon').className = 'modal-icon ' + opts.icon;
+    }
+    el.classList.add('is-open');
+    el.setAttribute('aria-hidden', 'false');
+  }
+  function closeModal(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    el.classList.remove('is-open');
+    el.setAttribute('aria-hidden', 'true');
+  }
+  document.getElementById('btn-modal-ok').addEventListener('click', function () {
+    closeModal('error-modal');
+    awaitingAck = false;
+    clearStudentPanel();
+    setStatus(qrRunning ? '스캔 중' : '대기 중', qrRunning ? 'ok' : '');
+  });
+  document.getElementById('btn-cam-ok').addEventListener('click', function () {
+    closeModal('cam-modal');
+  });
+
+  /* ---------- 학생 상세 (식사 이력) 모달 ---------- */
+  var studentDetailModal = document.getElementById('student-detail-modal');
+  var studentDetailPhoto = document.getElementById('student-detail-photo');
+  var studentDetailTitle = document.getElementById('student-detail-title');
+  var studentDetailCount = document.getElementById('student-detail-count');
+  var studentDetailList = document.getElementById('student-detail-list');
+
+  /** 식사 이력: 시트/ISO 등 원문을 그대로 두되, ISO(T)만 로컬 yyyy-MM-dd HH:mm:ss로 풀어 표시 */
+  function formatHistoryTimeDisplay_(raw) {
+    var s = raw == null ? '' : String(raw).trim();
+    if (!s) return '-';
+    if (/^\d{4}-\d{2}-\d{2}\s+\d{1,2}:\d{2}/.test(s)) return s;
+    var d = new Date(s);
+    if (!isNaN(d.getTime())) {
+      function z(n) { return (n < 10 ? '0' : '') + n; }
+      return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()) + ' '
+          + z(d.getHours()) + ':' + z(d.getMinutes()) + ':' + z(d.getSeconds());
+    }
+    return s;
+  }
+
+  function openStudentDetailModal(ctx) {
+    ctx = ctx || {};
+    var sid = String(ctx.studentId || '').trim();
+    if (!sid) return;
+    var nm = String(ctx.name || '').trim() || '이름 없음';
+    var photo = ctx.photoUrl ? ensurePhotoLarge(ctx.photoUrl) : fallbackPhoto();
+    studentDetailPhoto.src = photo;
+    studentDetailPhoto.onerror = function () {
+      studentDetailPhoto.onerror = null;
+      studentDetailPhoto.src = fallbackPhoto();
+    };
+    studentDetailTitle.textContent = nm + '(' + sid + ')';
+    studentDetailCount.textContent = '…';
+    studentDetailList.innerHTML = '<div class="student-detail-loading">불러오는 중…</div>';
+    studentDetailModal.classList.add('is-open');
+    studentDetailModal.setAttribute('aria-hidden', 'false');
+
+    api('getStudentHistory', { studentId: sid })
+        .then(function (res) {
+          if (!res || !res.ok) {
+            studentDetailCount.textContent = '-';
+            studentDetailList.innerHTML = '<div class="student-detail-error">'
+                + escapeHtml((res && res.error) || '이력을 불러올 수 없습니다.') + '</div>';
+            return;
+          }
+          var total = res.totalCount != null ? res.totalCount : (res.records && res.records.length) || 0;
+          studentDetailCount.textContent = String(total) + '회';
+          var recs = res.records || [];
+          if (!recs.length) {
+            studentDetailList.innerHTML = '<div class="student-detail-loading">기록된 식사가 없습니다.</div>';
+            return;
+          }
+          studentDetailList.innerHTML = recs.map(function (r) {
+            var t = formatHistoryTimeDisplay_(r && r.time);
+            return '<div class="student-detail-list-item">' + escapeHtml(t) + '</div>';
+          }).join('');
+        })
+        .catch(function (err) {
+          studentDetailCount.textContent = '-';
+          studentDetailList.innerHTML = '<div class="student-detail-error">'
+              + escapeHtml(err && err.message ? err.message : '서버 오류') + '</div>';
+        });
+  }
+
+  function closeStudentDetailModal() {
+    studentDetailModal.classList.remove('is-open');
+    studentDetailModal.setAttribute('aria-hidden', 'true');
+    studentDetailPhoto.src = '';
+    studentDetailList.innerHTML = '';
+  }
+
+  document.getElementById('btn-student-detail-close').addEventListener('click', closeStudentDetailModal);
+  studentDetailModal.addEventListener('click', function (e) {
+    if (e.target === studentDetailModal) closeStudentDetailModal();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && studentDetailModal.classList.contains('is-open')) {
+      closeStudentDetailModal();
+    }
+  });
+
+  function onStudentCardActivate(ev) {
+    if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
+    var card = ev.target.closest('.student-card--clickable');
+    if (!card || !this.contains(card)) return;
+    if (ev.type === 'keydown') ev.preventDefault();
+    var id = String(card.getAttribute('data-student-id') || '').trim();
+    if (!id) return;
+    var name = card.getAttribute('data-student-name') || '';
+    var photo = card.getAttribute('data-photo') || '';
+    openStudentDetailModal({ studentId: id, name: name, photoUrl: photo });
+  }
+  var logListEl = document.getElementById('log-list');
+  var stuListEl = document.getElementById('stu-list');
+  if (logListEl) {
+    logListEl.addEventListener('click', onStudentCardActivate);
+    logListEl.addEventListener('keydown', onStudentCardActivate);
+  }
+  if (stuListEl) {
+    stuListEl.addEventListener('click', onStudentCardActivate);
+    stuListEl.addEventListener('keydown', onStudentCardActivate);
+  }
+
+  /* ---------- 스캔 처리 (로컬 명단 즉시 조회, 시트 기록은 logMeal 비동기) ---------- */
+  function onScanSuccess(decodedText) {
+    if (awaitingAck || scanCooldown) return;
+    scanCooldown = true;
+    setTimeout(function () { scanCooldown = false; }, 1500);
+
+    var code = String(decodedText || '').trim();
+    if (!code) {
+      setStatus('코드가 비어 있습니다.', 'err');
+      return;
+    }
+
+    if (!studentsReady || !studentsCache || !studentsCache.length) {
+      setStatus('명단 불러오는 중… 잠시 후 다시 스캔해 주세요.', 'err');
+      return;
+    }
+
+    var student = studentsById[code];
+    var todayK = todayKeySeoul();
+
+    if (!student) {
+      awaitingAck = true;
+      clearStudentPanel('등록되지 않은 학생입니다.');
+      setStatus('미등록', 'err');
+      openModal('error-modal', {
+        title: '등록되지 않은 학생',
+        message: '등록이 안 된 학생입니다. 확인해주세요.',
+        icon: 'warn'
+      });
+      return;
+    }
+
+    if (!isEligiblePeriod(student, todayK)) {
+      awaitingAck = true;
+      renderStudentPanel(student, {});
+      setStatus('미등록', 'err');
+      openModal('error-modal', {
+        title: '등록되지 않은 학생',
+        message: '등록이 안 된 학생입니다. 확인해주세요.',
+        icon: 'warn'
+      });
+      return;
+    }
+
+    if (scannedToday[code]) {
+      awaitingAck = true;
+      renderStudentPanel(student, { time: '' });
+      setStatus('중복 스캔', 'err');
+      openModal('error-modal', {
+        title: '중복 스캔 감지',
+        message: '이미 식사한 학생입니다.',
+        icon: 'warn'
+      });
+      return;
+    }
+
+    var localTs = formatNowSeoul();
+    scannedToday[code] = true;
+    setStatus('인식 완료', 'ok');
+    playScanSuccessBeep();
+    renderStudentPanel(student, { greet: '맛있게 식사하세요!', time: localTs });
+
+    api('logMeal', { studentId: code, studentName: String(student.name || '').trim() })
+        .then(function (res) {
+          if (!res) return;
+          if (res.ok && res.status === 'success' && res.time) {
+            renderStudentPanel(student, { greet: '맛있게 식사하세요!', time: res.time });
+            return;
+          }
+          if (res.status === 'duplicate') {
+            delete scannedToday[code];
+            awaitingAck = true;
+            renderStudentPanel(student, { time: res.time || '' });
+            setStatus('중복 스캔', 'err');
+            openModal('error-modal', {
+              title: '중복 스캔 감지',
+              message: '이미 식사한 학생입니다.',
+              icon: 'warn'
+            });
+            return;
+          }
+          if (res.status === 'error' || res.status === 'invalid') {
+            delete scannedToday[code];
+            setStatus(res.message || '기록 실패', 'err');
+          }
+        })
+        .catch(function (err) {
+          delete scannedToday[code];
+          setStatus('기록 실패: ' + (err && err.message ? err.message : '네트워크'), 'err');
+        });
+  }
+
+  /* ---------- 카메라 (전면 facingMode: user 고정 우선) ---------- */
+  function startQr() {
+    if (qrRunning) return;
+    if (typeof Html5Qrcode === 'undefined') {
+      setStatus('QR 라이브러리 로드 실패', 'err');
+      return;
+    }
+    setStatus('카메라 권한 요청 중…', '');
+
+    if (!html5QrCode) html5QrCode = new Html5Qrcode('qr-reader');
+
+    var config = {
+      fps: 10,
+      qrbox: function (vw, vh) {
+        var w = Math.floor(Math.min(vw * 0.94, vw - 8));
+        var h = Math.floor(Math.min(vh * 0.92, vh - 8));
+        return { width: Math.max(120, w), height: Math.max(120, h) };
+      },
+      aspectRatio: 1.0
+    };
+
+    function onCamError() {}
+
+    function markRunning() {
+      qrRunning = true;
+      setStatus('스캔 중', 'ok');
+    }
+
+    function handleCamFail(e) {
+      qrRunning = false;
+      var msg = (e && e.message) ? e.message : '카메라를 열 수 없습니다.';
+      setStatus(msg, 'err');
+      var n = (e && e.name) || '';
+      if (n === 'NotAllowedError' || /permission/i.test(msg)) {
+        openModal('cam-modal');
+      }
+    }
+
+    html5QrCode
+        .start({ facingMode: { exact: 'user' } }, config, onScanSuccess, onCamError)
+        .catch(function () {
+          return html5QrCode.start({ facingMode: 'user' }, config, onScanSuccess, onCamError);
+        })
+        .catch(function () {
+          return Html5Qrcode.getCameras().then(function (devices) {
+            if (!devices || !devices.length) {
+              throw new Error('사용 가능한 카메라가 없습니다.');
+            }
+            var frontId = pickFrontCameraId(devices);
+            if (!frontId) throw new Error('전면 카메라를 찾을 수 없습니다.');
+            return html5QrCode.start(frontId, config, onScanSuccess, onCamError);
+          });
+        })
+        .then(markRunning)
+        .catch(handleCamFail);
+  }
+
+  /** 라벨 기준 전면 카메라 deviceId (facingMode 실패 시 보조) */
+  function pickFrontCameraId(devices) {
+    var re = /front|user|face|selfie|전면|셀카|내장|facetime/i;
+    for (var i = 0; i < devices.length; i++) {
+      if (re.test(String(devices[i].label || ''))) return devices[i].id;
+    }
+    return devices.length ? devices[0].id : null;
+  }
+
+  function stopQr() {
+    if (!html5QrCode || !qrRunning) return;
+    html5QrCode.stop().then(function () {
+      qrRunning = false;
+      setStatus('대기 중', '');
+    }).catch(function () { qrRunning = false; });
+  }
+
+  document.getElementById('btn-qr-start').addEventListener('click', startQr);
+  document.getElementById('btn-qr-stop').addEventListener('click', stopQr);
+  document.getElementById('btn-student-reset').addEventListener('click', function () {
+    clearStudentPanel();
+  });
+
+  /* ---------- 식사현황 ---------- */
+  function loadTodayLog() {
+    var listEl = document.getElementById('log-list');
+    var countEl = document.getElementById('log-count');
+    var dateEl = document.getElementById('log-date');
+    listEl.innerHTML = '<div class="empty-state">불러오는 중…</div>';
+    api('todayLog').then(function (res) {
+      if (!res || !res.ok) {
+        listEl.innerHTML = '<div class="empty-state">' + escapeHtml((res && res.error) || '오류') + '</div>';
+        return;
+      }
+      var studentCount = (res.entries || []).filter(function (e) {
+        return !isAdmin(e && e.studentId);
+      }).length;
+      countEl.textContent = String(studentCount);
+      dateEl.textContent = res.date || '-';
+      if (!res.entries || !res.entries.length) {
+        listEl.innerHTML = '<div class="empty-state">아직 식사한 학생이 없습니다.</div>';
+        return;
+      }
+      var html = res.entries.map(function (e) {
+        var photo = e.photoUrl ? ensurePhotoLarge(e.photoUrl) : fallbackPhoto();
+        var time = (e.time || '').slice(11, 19);
+        return '<div class="student-card student-card--clickable" role="button" tabindex="0" '
+             + 'data-student-id="' + escapeHtml(e.studentId || '') + '" '
+             + 'data-student-name="' + escapeHtml(e.name || '') + '" '
+             + 'data-photo="' + escapeHtml(photo) + '">'
+             + '<img src="' + escapeHtml(photo) + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto() + '\'" alt="">'
+             + '<div class="nm">' + escapeHtml(e.name || '-') + '</div>'
+             + '<div class="meta">' + escapeHtml(e.studentId || '') + '</div>'
+             + '<div class="time">' + escapeHtml(time) + '</div>'
+             + '</div>';
+      }).join('');
+      listEl.innerHTML = html;
+    }).catch(function (err) {
+      listEl.innerHTML = '<div class="empty-state">서버 오류: ' + escapeHtml(err.message || '') + '</div>';
+    });
+  }
+  document.getElementById('btn-log-refresh').addEventListener('click', loadTodayLog);
+
+  /* ---------- 학생정보 ---------- */
+  function loadStudents(force) {
+    var listEl = document.getElementById('stu-list');
+    if (studentsReady && !force) {
+      if (!mealApplicantStatsCache && studentsCache && studentsCache.length) {
+        mealApplicantStatsCache = computeMealApplicantStatsClient_(studentsCache);
+      }
+      if (!(String(afterSchoolPeriodCache.start || '').trim() && String(afterSchoolPeriodCache.end || '').trim())
+          && studentsCache && studentsCache.length) {
+        afterSchoolPeriodCache = derivePeriodFromStudents_(studentsCache);
+      }
+      renderStudentDashboard_(mealApplicantStatsCache || computeMealApplicantStatsClient_(studentsCache || []));
+      renderStudents(studentsCache || []);
+      return;
+    }
+    listEl.innerHTML = '<div class="empty-state">불러오는 중…</div>';
+    var req = force
+        ? Promise.all([api('students'), api('todayLog')])
+        : api('students').then(function (s) { return [s, null]; });
+    req.then(function (arr) {
+      var res = Array.isArray(arr) ? arr[0] : arr;
+      var logRes = Array.isArray(arr) ? arr[1] : null;
+      if (!res || !res.ok) {
+        renderStudentDashboard_({ totalApplicants: 0, grid: [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]] });
+        listEl.innerHTML = '<div class="empty-state">' + escapeHtml((res && res.error) || '오류') + '</div>';
+        return;
+      }
+      studentsCache = res.students || [];
+      rebuildStudentsById(studentsCache);
+      studentsReady = true;
+      // 서버 stats를 무시하고 항상 클라이언트에서 재계산 → 관리자(999999999, 888888888) 확실히 제외
+      mealApplicantStatsCache = computeMealApplicantStatsClient_(studentsCache);
+      syncAfterSchoolPeriodFromApi_(res, studentsCache);
+      if (logRes && logRes.ok) applyTodayLogToScanned(logRes);
+      renderStudentDashboard_(mealApplicantStatsCache);
+      renderStudents(studentsCache);
+    }).catch(function (err) {
+      renderStudentDashboard_({ totalApplicants: 0, grid: [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]] });
+      listEl.innerHTML = '<div class="empty-state">서버 오류: ' + escapeHtml(err.message || '') + '</div>';
+    });
+  }
+  function renderStudents(list) {
+    var listEl = document.getElementById('stu-list');
+    var q = String(document.getElementById('stu-search').value || '').trim().toLowerCase();
+    var byClass = (list || []).filter(function (s) {
+      if (!activeClassFilter) return true;
+      var gc = parseGradeClassFromStudentId_(s.studentId);
+      return !!gc && gc.grade === activeClassFilter.grade && gc.classNo === activeClassFilter.classNo;
+    });
+    var filtered = !q ? byClass : byClass.filter(function (s) {
+      return String(s.name || '').toLowerCase().indexOf(q) !== -1
+          || String(s.studentId || '').toLowerCase().indexOf(q) !== -1;
+    });
+    if (!filtered.length) {
+      listEl.innerHTML = '<div class="empty-state">결과가 없습니다.</div>';
+      return;
+    }
+    listEl.innerHTML = filtered.map(function (s) {
+      var photo = s.photoUrl ? ensurePhotoLarge(s.photoUrl) : fallbackPhoto();
+      // 관리자(999999999, 888888888)는 방과후 식사 신청 pill 표시 안 함
+      var adminStudent = isAdmin(s.studentId);
+      var pill = (!adminStudent && isMealApplicantStudent_(s))
+          ? '<div class="stu-applicant-pill">방과후 식사 신청</div>'
+          : '';
+      return '<div class="student-card student-card--clickable" role="button" tabindex="0" '
+           + 'data-student-id="' + escapeHtml(s.studentId || '') + '" '
+           + 'data-student-name="' + escapeHtml(s.name || '') + '" '
+           + 'data-photo="' + escapeHtml(photo) + '">'
+           + '<img src="' + escapeHtml(photo) + '" onerror="this.onerror=null;this.src=\'' + fallbackPhoto() + '\'" alt="">'
+           + '<div class="nm">' + escapeHtml(s.name || '-') + '</div>'
+           + '<div class="meta">' + escapeHtml(s.studentId || '') + '</div>'
+           + pill
+           + '</div>';
+    }).join('');
+  }
+  document.getElementById('btn-stu-refresh').addEventListener('click', function () { loadStudents(true); });
+  document.getElementById('stu-dash').addEventListener('click', function (ev) {
+    var target = ev.target;
+    var classCell = target && target.closest ? target.closest('.stu-class-cell') : null;
+    if (classCell && this.contains(classCell)) {
+      var g = parseInt(classCell.getAttribute('data-grade'), 10);
+      var c = parseInt(classCell.getAttribute('data-class'), 10);
+      if (activeClassFilter && activeClassFilter.grade === g && activeClassFilter.classNo === c) {
+        clearClassFilter_(true);
+      } else {
+        activeClassFilter = { grade: g, classNo: c };
+        syncStudentFilterUI_();
+      }
+      if (studentsCache) renderStudents(studentsCache);
+      return;
+    }
+    var clearBtn = target && target.closest ? target.closest('#btn-stu-clear-filter') : null;
+    if (clearBtn && this.contains(clearBtn)) {
+      if (!activeClassFilter) return;
+      clearClassFilter_(true);
+      if (studentsCache) renderStudents(studentsCache);
+    }
+  });
+  document.getElementById('stu-search').addEventListener('input', function () {
+    if (studentsCache) renderStudents(studentsCache);
+  });
+  document.getElementById('stu-search').addEventListener('search', function () {
+    if (studentsCache) renderStudents(studentsCache);
+  });
+
+  /* ---------- 시작 ---------- */
+  // ?mode=display → 노트북: 최근 스캔 학생정보 자동 표시 (선생님 얼굴 확인용)
+  // 파라미터 없으면 기존 전체 기능 그대로
+  var urlMode = (new URLSearchParams(window.location.search)).get('mode') || '';
+
+  if (urlMode === 'display') {
+    /* ── 노트북 디스플레이 모드 ── */
+    document.querySelectorAll('.nav-btn').forEach(function (b) { b.style.display = 'none'; });
+
+    // display 전용 학생정보 패널 생성
+    var main = document.querySelector('main');
+    var displaySection = document.createElement('section');
+    displaySection.className = 'view active display-mode-view';
+    displaySection.setAttribute('data-view', 'display');
+    displaySection.innerHTML = [
+      '<div class="display-waiting" id="display-waiting">',
+      '  <div class="display-waiting-icon">📷</div>',
+      '  <div class="display-waiting-text">QR 스캔 대기 중…</div>',
+      '</div>',
+      '<div class="display-student" id="display-student" style="display:none">',
+      '  <div class="display-photo-wrap">',
+      '    <img class="display-photo" id="display-photo" src="" alt="" />',
+      '  </div>',
+      '  <div class="display-info">',
+      '    <div class="display-name" id="display-name"></div>',
+      '    <div class="display-sid" id="display-sid"></div>',
+      '    <div class="display-time" id="display-time"></div>',
+      '  </div>',
+      '</div>'
+    ].join('');
+
+    // 기존 뷰 전부 숨기고 display 뷰 추가
+    document.querySelectorAll('.view').forEach(function (v) {
+      v.classList.remove('active');
+      v.style.display = 'none';
+    });
+    main.appendChild(displaySection);
+
+    // 폴링: 2초마다 최근 스캔 확인
+    var lastSeenTime = '';
+    function pollLatestScan() {
+      api('latestScan').then(function (res) {
+        if (!res || !res.ok || !res.entry) return;
+        var entry = res.entry;
+        if (entry.time === lastSeenTime) return;
+        lastSeenTime = entry.time;
+
+        var photo = entry.photoUrl
+          ? entry.photoUrl.replace(/sz=w\d+/, 'sz=w1000')
+          : 'data:image/svg+xml;utf8,' + encodeURIComponent(
+              '<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">'
+            + '<rect width="200" height="200" fill="#222a3d"/>'
+            + '<circle cx="100" cy="80" r="32" fill="#4fd1c5" opacity="0.5"/>'
+            + '<rect x="50" y="120" width="100" height="60" rx="30" fill="#4fd1c5" opacity="0.5"/>'
+            + '</svg>');
+
+        document.getElementById('display-waiting').style.display = 'none';
+        document.getElementById('display-student').style.display = 'flex';
+        document.getElementById('display-photo').src = photo;
+        document.getElementById('display-name').textContent = entry.name || '이름 없음';
+        document.getElementById('display-sid').textContent = entry.studentId || '';
+        document.getElementById('display-time').textContent = '스캔 시각: ' + (entry.time || '').slice(11, 19);
+      }).catch(function () {});
+    }
+    setInterval(pollLatestScan, 2000);
+    pollLatestScan();
+
+  } else {
+    /* ── 기본 모드 (기존 동작 그대로) ── */
+    showView('qr');
+    prefetchScanData();
+  }
+
+})();
+</script>
+
+</body>
+</html>
